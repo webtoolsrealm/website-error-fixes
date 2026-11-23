@@ -13,6 +13,7 @@ Maintained by [Web Tools Realm](https://webtoolsrealm.com), free website and net
 - [NET::ERR_CERT_COMMON_NAME_INVALID](#neterr_cert_common_name_invalid)
 - [SERVFAIL](#servfail)
 - [Connection refused vs connection timed out](#connection-refused-vs-connection-timed-out)
+- [ERR_TOO_MANY_REDIRECTS](#err_too_many_redirects)
 
 ---
 
@@ -156,6 +157,25 @@ ss -tlnp
 Full guide: https://webtoolsrealm.com/blog/connection-refused-vs-connection-timed-out
 
 ---
+## ERR_TOO_MANY_REDIRECTS
+
+**What it means:** The page is stuck in a redirect loop. URL A sends the browser to URL B, and B sends it back to A. Browsers give up after about 20 redirects.
+
+**Quick check (visitor):** Clear cookies for that one site, then try an incognito window. If it still fails, the problem is on the server.
+
+**Most common causes (site owner):**
+
+| Cause | Fix |
+|---|---|
+| Cloudflare SSL set to "Flexible" while the server forces HTTPS | Set Cloudflare SSL/TLS to **Full** or **Full (strict)** |
+| Two HTTPS redirects (hosting panel + .htaccess) fighting | Keep only one HTTPS redirect |
+| www and non-www redirecting to each other | Pick one version everywhere (CMS, server, CDN) |
+| Wrong WordPress Address / Site Address | Set `WP_HOME` and `WP_SITEURL` in `wp-config.php` |
+| A redirect, SSL or cache plugin | Disable plugins, re-enable one at a time |
+
+**Find the loop:** run the URL through a [redirect checker](https://webtoolsrealm.com/tool/redirect-checker). If the same two URLs keep swapping, you know which rules conflict.
+
+Full guide: [ERR_TOO_MANY_REDIRECTS: What It Means and How to Fix It](https://webtoolsrealm.com/blog/err-too-many-redirects)
 
 ## Free tools
 
