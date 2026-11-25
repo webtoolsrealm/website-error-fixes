@@ -8,12 +8,13 @@ Maintained by [Web Tools Realm](https://webtoolsrealm.com), free website and net
 
 - [DNS_PROBE_FINISHED_NXDOMAIN](#dns_probe_finished_nxdomain)
 - [DNS_PROBE_FINISHED_BAD_CONFIG](#dns_probe_finished_bad_config)
+- [ERR_NAME_NOT_RESOLVED](#err_name_not_resolved)
+- [SERVFAIL](#servfail)
 - [ERR_SSL_PROTOCOL_ERROR](#err_ssl_protocol_error)
 - [SSL_ERROR_RX_RECORD_TOO_LONG (Firefox)](#ssl_error_rx_record_too_long-firefox)
 - [NET::ERR_CERT_COMMON_NAME_INVALID](#neterr_cert_common_name_invalid)
-- [SERVFAIL](#servfail)
-- [Connection refused vs connection timed out](#connection-refused-vs-connection-timed-out)
 - [ERR_TOO_MANY_REDIRECTS](#err_too_many_redirects)
+- [Connection refused vs connection timed out](#connection-refused-vs-connection-timed-out)
 
 ---
 
@@ -56,6 +57,45 @@ netsh winsock reset
 - Set DNS manually to `1.1.1.1` or `8.8.8.8`
 
 Full guide: https://webtoolsrealm.com/blog/dns-errors-explained
+
+---
+
+## ERR_NAME_NOT_RESOLVED
+
+**Meaning:** The browser couldn't turn the domain name into an IP address, so it had nowhere to connect. The site itself may be fine.
+
+**First test:** Open the site on a different network (mobile data instead of Wi-Fi). If it loads there, the problem is your device or network. If it fails everywhere, the domain has a DNS problem.
+
+**Fixes (device side):**
+
+| Where | Fix |
+|---|---|
+| Android | Settings → Network & internet → **Private DNS** → Automatic (most common cause) |
+| Windows | `ipconfig /flushdns`, then set DNS to `1.1.1.1` or `8.8.8.8` |
+| macOS | `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder` |
+| Chrome | `chrome://net-internals/#dns` → Clear host cache |
+| Any | Turn off VPN / ad blocker, restart router, check the hosts file |
+
+**Fixes (domain side):** Run a [DNS lookup](https://webtoolsrealm.com/tool/dns-lookup). No A record means no IP to connect to. Then check [WHOIS](https://webtoolsrealm.com/tool/domain-whois): `clientHold`, `serverHold` or `redemptionPeriod` means the domain is suspended or expired.
+
+Full guide: https://webtoolsrealm.com/blog/err-name-not-resolved
+
+---
+
+## SERVFAIL
+
+**Meaning:** The resolver tried and could not complete the lookup. Usually DNSSEC validation failed or the nameservers are unreachable.
+
+**Check:**
+
+```
+dig example.com
+dig +cd example.com
+```
+
+If the second command works and the first fails, the cause is DNSSEC, not the records.
+
+Full guide: https://webtoolsrealm.com/blog/servfail-explained
 
 ---
 
@@ -124,20 +164,25 @@ Check any certificate online: https://webtoolsrealm.com/tool/ssl-checker
 
 ---
 
-## SERVFAIL
+## ERR_TOO_MANY_REDIRECTS
 
-**Meaning:** The resolver tried and could not complete the lookup. Usually DNSSEC validation failed or the nameservers are unreachable.
+**Meaning:** The page is stuck in a redirect loop. URL A sends the browser to URL B, and B sends it back to A. Browsers give up after about 20 redirects.
 
-**Check:**
+**First test (visitor):** Clear cookies for that one site, then try an incognito window. If it still fails, the problem is on the server.
 
-```
-dig example.com
-dig +cd example.com
-```
+**Most common causes (site owner):**
 
-If the second command works and the first fails, the cause is DNSSEC, not the records.
+| Cause | Fix |
+|---|---|
+| Cloudflare SSL set to "Flexible" while the server forces HTTPS | Set Cloudflare SSL/TLS to **Full** or **Full (strict)** |
+| Two HTTPS redirects (hosting panel + .htaccess) fighting | Keep only one HTTPS redirect |
+| www and non-www redirecting to each other | Pick one version everywhere (CMS, server, CDN) |
+| Wrong WordPress Address / Site Address | Set `WP_HOME` and `WP_SITEURL` in `wp-config.php` |
+| A redirect, SSL or cache plugin | Disable plugins, re-enable one at a time |
 
-Full guide: https://webtoolsrealm.com/blog/servfail-explained
+**Find the loop:** Run the URL through a [redirect checker](https://webtoolsrealm.com/tool/redirect-checker). If the same two URLs keep swapping, you know which rules conflict.
+
+Full guide: https://webtoolsrealm.com/blog/err-too-many-redirects
 
 ---
 
@@ -157,32 +202,15 @@ ss -tlnp
 Full guide: https://webtoolsrealm.com/blog/connection-refused-vs-connection-timed-out
 
 ---
-## ERR_TOO_MANY_REDIRECTS
-
-**What it means:** The page is stuck in a redirect loop. URL A sends the browser to URL B, and B sends it back to A. Browsers give up after about 20 redirects.
-
-**Quick check (visitor):** Clear cookies for that one site, then try an incognito window. If it still fails, the problem is on the server.
-
-**Most common causes (site owner):**
-
-| Cause | Fix |
-|---|---|
-| Cloudflare SSL set to "Flexible" while the server forces HTTPS | Set Cloudflare SSL/TLS to **Full** or **Full (strict)** |
-| Two HTTPS redirects (hosting panel + .htaccess) fighting | Keep only one HTTPS redirect |
-| www and non-www redirecting to each other | Pick one version everywhere (CMS, server, CDN) |
-| Wrong WordPress Address / Site Address | Set `WP_HOME` and `WP_SITEURL` in `wp-config.php` |
-| A redirect, SSL or cache plugin | Disable plugins, re-enable one at a time |
-
-**Find the loop:** run the URL through a [redirect checker](https://webtoolsrealm.com/tool/redirect-checker). If the same two URLs keep swapping, you know which rules conflict.
-
-Full guide: [ERR_TOO_MANY_REDIRECTS: What It Means and How to Fix It](https://webtoolsrealm.com/blog/err-too-many-redirects)
 
 ## Free tools
 
 - DNS Lookup: https://webtoolsrealm.com/tool/dns-lookup
 - SSL Checker: https://webtoolsrealm.com/tool/ssl-checker
-- Open Port Checker: https://webtoolsrealm.com/tool/open-port-checker
+- Domain WHOIS Lookup: https://webtoolsrealm.com/tool/domain-whois
 - Redirect Checker: https://webtoolsrealm.com/tool/redirect-checker
+- HTTP Status Code Checker: https://webtoolsrealm.com/tool/http-status-code-checker
+- Open Port Checker: https://webtoolsrealm.com/tool/open-port-checker
 - Website Status Checker: https://webtoolsrealm.com/tool/website-status-checker
 
 Suggestions and corrections are welcome. Open an issue.
